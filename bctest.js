@@ -10,9 +10,10 @@ const INITIAL_DIFFICULTY = bigInt(2).pow(bigInt(256)).divide(bigInt(100000));
 const MD = forge.md.sha256.create();
 
 const config = {
-    port: yargs.argv.port,
-    peers: yargs.argv.peers.split(','),
-    text: yargs.argv.text
+    port: yargs.argv.port || 3000,
+    peers: (yargs.argv.peers ? yargs.argv.peers.split(',') : []),
+    text: yargs.argv.text || 'bctest',
+	delay: yargs.argv.delay || 3000,
 };
 
 let hexToBigInt = (hex) => {
@@ -38,7 +39,7 @@ const app = express();
 let nonce = bigInt.zero;
 let currentDifficulty = INITIAL_DIFFICULTY;
 
-axios.get(config.peers[0] + "/getblocks?after=" + BC.ROOT_HASH).then((result) => {
+axios.get(config.peers[0] + "/getblocks?ancestor=" + BC.ROOT_HASH).then((result) => {
     let blocksStr = result.data;
     if (blocksStr) {
         blocksStr.split('\n').forEach((blockStr) => {
@@ -99,8 +100,9 @@ app.use(function(req, res, next) {
             postBlock(result.block);
         }
     } else if (req.path.startsWith('/getblocks')) {
-        let afterBlock = req.url.split('?after=')[1];
-        let descendants = blockchain.getDescendants(afterBlock);
+        let ancestor = req.url.split('?ancestor=')[1];
+		ancestor = ancestor || BC.ROOT_HASH;
+        let descendants = blockchain.getDescendants(ancestor);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/plain');
         descendants.forEach((block) => {
@@ -113,13 +115,13 @@ app.use(function(req, res, next) {
 });
 
 let postBlock = (block) => {
-    // setTimeout(() => {
+     setTimeout(() => {
         config.peers.forEach((peer) => {
             axios.post(peer + "/block", "block=" + encodeURIComponent(block.blockString()), {headers: {"Content-Type": "application/x-www-form-urlencoded"}})
                 .catch((error) => {
                 });
         });
-    // }, 3000);
+     }, config.delay);
 };
 
 app.listen(config.port, () => {
