@@ -1,0 +1,15 @@
+{
+  "name": "bctest",
+  "version": "0.0.0",
+  "description": "bctest",
+  "devDependencies": {},
+  "dependencies": {
+    "axios": "^0.15.3",
+    "big-integer": "^1.6.17",
+    "body-parser": "^1.17.1",
+    "express": "^4.15.2",
+    "mocha": "^3.2.0",
+    "node-forge": "^0.7.1",
+    "yargs": "^7.0.2"
+  }
+}
