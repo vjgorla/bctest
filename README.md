@@ -1,5 +1,6 @@
 ### How to run
-* Install node.js from https://nodejs.org/en/download/
+* Install nodejs from https://nodejs.org/en/download/
+* Install dependencies ```adtest>npm install```
 * Start a node ```adtest>node main.js --port=3000 --peers="http://localhost:3001" --text=node1```
 * Start another node ```adtest>node main.js --port=3001 --peers="http://localhost:3000" --text=node2```
 
