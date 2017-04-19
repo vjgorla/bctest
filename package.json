@@ -2,6 +2,9 @@
   "name": "bctest",
   "version": "0.0.0",
   "description": "bctest",
+  "scripts": {
+    "test": "mocha *test.js"
+  },
   "devDependencies": {},
   "dependencies": {
     "axios": "^0.15.3",
