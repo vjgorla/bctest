@@ -4,7 +4,8 @@
   "description": "bctest",
   "scripts": {
     "test": "mocha *test.js",
-    "cover": "istanbul cover _mocha"
+    "cover": "istanbul cover _mocha",
+    "coveralls": "npm run cover -- --report lcovonly && cat ./coverage/lcov.info | coveralls"
   },
   "devDependencies": {},
   "dependencies": {
