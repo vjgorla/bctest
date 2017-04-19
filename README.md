@@ -1,4 +1,5 @@
 ## A test blockchain
+[![Build Status](https://travis-ci.org/vjgorla/bctest.svg?branch=master)](https://travis-ci.org/vjgorla/bctest)
 
 ### How to run
 * Install nodejs from https://nodejs.org/en/download/
