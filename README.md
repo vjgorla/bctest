@@ -8,10 +8,9 @@ To simulate latency in peer-to-peer network, block relay is delayed by 3secs by 
 
 ### Features
 * Does nothing useful :)
-* Proof of work to secure the chain
+* Proof-of-Work to secure the chain
 * Nodes reorg to move to the longest chain
+* Difficulty retarget
 
 ### Todo
-* Difficulty retarget
 * Nodes reorg to move to a chain with most work (not longest)
-* Share the list peers with newly connected nodes
