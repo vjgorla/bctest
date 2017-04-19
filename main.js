@@ -1,107 +1,98 @@
 const express = require("express");
 const bodyParser = require('body-parser');
-const forge = require('node-forge');
 const bigInt = require("big-integer");
 const yargs = require("yargs");
 const axios = require("axios");
+const os = require("os");
 const BC = require('./blockchain');
-
-const INITIAL_DIFFICULTY = bigInt(2).pow(bigInt(256)).divide(bigInt(100000));
-const MD = forge.md.sha256.create();
+const utils = require('./utils');
 
 const config = {
     port: yargs.argv.port || 3000,
     peers: (yargs.argv.peers ? yargs.argv.peers.split(',') : []),
     text: yargs.argv.text || 'bctest',
-	delay: yargs.argv.delay || 3000,
-};
-
-let hexToBigInt = (hex) => {
-    return bigInt(hex, 16);
-};
-
-let bigIntToHex = (bigInt) => {
-    return bigInt.toString(16);
-};
-
-let digestStrToHex = (str) => {
-    MD.start();
-    MD.update(str);
-    return MD.digest().toHex();
+    delay: yargs.argv.delay || 3000,
 };
 
 let blockchain = BC.createBlockchain();
-
-console.log(INITIAL_DIFFICULTY.toString() + "  <<<<<<<");
-
 const app = express();
-
 let nonce = bigInt.zero;
-let currentDifficulty = INITIAL_DIFFICULTY;
 
-axios.get(config.peers[0] + "/getblocks?ancestor=" + BC.ROOT_HASH).then((result) => {
-    let blocksStr = result.data;
-    if (blocksStr) {
-        blocksStr.split('\n').forEach((blockStr) => {
-            if (blockStr) {
-                receiveBlock(blockStr);
-            }
-        });
-    }
-}).catch((error) => {});
+if (config.peers.length > 0) {
+    axios.get(config.peers[0] + "/getblocks?ancestor=" + BC.ROOT_HASH).then((result) => {
+        let blocksStr = result.data;
+        if (blocksStr) {
+            blocksStr.split('\n').forEach((blockStr) => {
+                if (blockStr) {
+                    processBlock(blockStr);
+                }
+            });
+        }
+    }).catch((error) => {});
+    config.peers.forEach((peer) => {
+        axios.post(peer + "/addpeer", "peer=" + encodeURIComponent("http://" + os.hostname() + ":" + config.port),
+            {headers: {"Content-Type": "application/x-www-form-urlencoded"}})
+        .catch((error) => {});
+    });
+}
 
 setInterval(() => {
     for(let i = 0; i < 1000; i++) {
-        nonce = nonce.plus(bigInt.one);
-        let block = BC.createBlock(blockchain.getTopBlockHash(), nonce.toString(), new Date().getTime(), config.text);
-        let blockHash = digestStrToHex(block.blockContentsString());
-        if (hexToBigInt(blockHash).lesserOrEquals(currentDifficulty)) {
-            block.blockHash = blockHash;
-            //console.log(hashBigInt.toString());
-            blockchain.addBlock(block, true);
-            postBlock(block);
-        }
+    nonce = nonce.plus(bigInt.one);
+    let block = BC.createBlock(blockchain.topBlockHash, nonce.toString(), new Date().getTime(), config.text);
+    let blockHash = utils.digestStrToHex(block.blockContentsString());
+    if (utils.hexToBigInt(blockHash).lesserOrEquals(blockchain.currentDifficulty)) {
+        block.blockHash = blockHash;
+        blockchain.addBlock(block, true);
+        relayBlock(block, config.delay);
     }
+}
 }, 50);
 
-let receiveBlock = (blockStr) => {
+let processBlock = (blockStr, peer, onDone) => {
     let blockElms = blockStr.split(':');
     if (blockElms.length != 5) {
         console.error('Invalid number of elements in block');
         return;
     }
-
     let block = BC.createBlock(blockElms[1], blockElms[2], blockElms[3], blockElms[4]);
     block.blockHash = blockElms[0];
-
-    let blockContentsStr = block.blockContentsString();
-    let blockHash = digestStrToHex(blockContentsStr);
-    if (block.blockHash !== blockHash) {
-        console.error('Invalid block hash');
-        return;
-    }
-    let hashBigInt = hexToBigInt(block.blockHash);
-    if (!hashBigInt.lesserOrEquals(currentDifficulty)) {
-        console.error('Invalid difficulty');
-        return;
-    }
     let result = blockchain.addBlock(block, false);
-    result.block = block;
-    return result;
+    if (result) {
+        if (!result.alreadyExists) {
+            if (result.isOrphan) {
+                axios.get(peer + "/getancestor?descendant=" + block.blockHash).then((_result) => {
+                    let ancestorBlocksStr = _result.data;
+                    if (ancestorBlocksStr) {
+                        processBlock(ancestorBlocksStr, peer, (_result) => {
+                            let nresult = blockchain.addBlock(block, false);
+                            if (nresult.valid && onDone) {
+                                nresult.block = block;
+                                onDone(nresult);
+                            }
+                        });
+                    }
+                }).catch((error) => {});
+            } else if (result.valid && onDone) {
+                result.block = block;
+                onDone(result);
+            }
+        }
+    }
 };
 
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(function(req, res, next) {
-    if(req.path === '/block') {
-        let result = receiveBlock(req.body.block);
+    if(req.path.startsWith('/block')) {
+        let peer = decodeURIComponent(req.url.split('?peer=')[1]);
+        processBlock(req.body.block, peer, (result) => {
+            relayBlock(result.block, 0);
+        });
         res.sendStatus(200);
-        if (result && !result.alreadyExists) {
-            postBlock(result.block);
-        }
     } else if (req.path.startsWith('/getblocks')) {
         let ancestor = req.url.split('?ancestor=')[1];
-		ancestor = ancestor || BC.ROOT_HASH;
+        ancestor = ancestor || BC.ROOT_HASH;
         let descendants = blockchain.getDescendants(ancestor);
         res.statusCode = 200;
         res.setHeader('Content-Type', 'text/plain');
@@ -109,22 +100,36 @@ app.use(function(req, res, next) {
             res.write(block.blockString() + '\n');
         });
         res.end();
+    } else if (req.path.startsWith('/getancestor')) {
+        let descendant = req.url.split('?descendant=')[1];
+        let ancestor = blockchain.getAncestor(descendant);
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'text/plain');
+        if (ancestor) {
+            res.write(ancestor.blockString());
+        }
+        res.end();
+    } else if (req.path.startsWith('/addpeer')) {
+        if (!config.peers.includes(req.body.peer)) {
+            config.peers.push(req.body.peer);
+            console.log('peer ' + req.body.peer + ' connected');
+        }
     } else {
         next();
     }
 });
 
-let postBlock = (block) => {
-     setTimeout(() => {
+let relayBlock = (block, delay) => {
+    setTimeout(() => {
         config.peers.forEach((peer) => {
-            axios.post(peer + "/block", "block=" + encodeURIComponent(block.blockString()), {headers: {"Content-Type": "application/x-www-form-urlencoded"}})
-                .catch((error) => {
-                });
+            axios.post(peer + "/block?peer=" + encodeURIComponent("http://" + os.hostname() + ":" + config.port),
+                "block=" + encodeURIComponent(block.blockString()),
+            {headers: {"Content-Type": "application/x-www-form-urlencoded"}})
+            .catch((error) => {});
         });
-     }, config.delay);
+    }, delay);
 };
 
 app.listen(config.port, () => {
     console.log("Server Started");
 });
-

@@ -1,6 +1,14 @@
 const bigInt = require("big-integer");
+const utils = require('./utils');
 
 const ROOT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
+const RETARGET_BLOCK_INTERVAL = 100
+const INITIAL_DIFFICULTY = bigInt(2).pow(bigInt(256)).divide(bigInt(100000));
+const BASELINE_TS_INTERVAL = bigInt(1000000);
+
+const _difficulty = (interval) => {
+    return bigInt(2).pow(bigInt(256)).multiply(interval.multiply(bigInt(100000)).divide(BASELINE_TS_INTERVAL)).divide(bigInt('10000000000'));
+}
 
 const createBlock = (_prevBlockHash, _nonce, _ts, _text) => {
     return {
@@ -20,19 +28,40 @@ const createBlock = (_prevBlockHash, _nonce, _ts, _text) => {
 
 const createBlockchain = () => {
     return {
+        currentDifficulty: INITIAL_DIFFICULTY,
+        retargetBlockInterval: RETARGET_BLOCK_INTERVAL,
         topBlockNumber: bigInt.zero,
         topBlockHash: ROOT_HASH,
         map: {},
         descendantsMap: {},
-        getTopBlockNumber() {
-            return this.topBlockNumber;
-        },
-        getTopBlockHash() {
-            return this.topBlockHash;
+        _setDifficulty(block) {
+            let newDifficulty = this._calculateDifficulty(block.blockHash);
+            if (newDifficulty.notEquals(this.currentDifficulty)) {
+                console.log("Difficulty adjusted ... " + this.currentDifficulty.toString() + " > " + newDifficulty.toString());
+            }
+            this.currentDifficulty = newDifficulty;
         },
         addBlock(block, mined) {
             if (this.map[block.blockHash]) {
                 return { alreadyExists: true };
+            }
+            if (block.prevBlockHash !== ROOT_HASH && !this.map[block.prevBlockHash]) {
+                console.log("Orphan - " + block.prevBlockHash + " does not exist");
+                return { alreadyExists: false, isOrphan: true };
+            }
+            if (!mined) {
+                let blockContentsStr = block.blockContentsString();
+                let blockHash = utils.digestStrToHex(blockContentsStr);
+                if (block.blockHash !== blockHash) {
+                    console.error('Invalid block hash');
+                    return { alreadyExists: false, isOrphan: false, valid: false };
+                }
+                let hashBigInt = utils.hexToBigInt(block.blockHash);
+                let targetDifficulty = this._calculateDifficulty(block.prevBlockHash);
+                if (!hashBigInt.lesserOrEquals(targetDifficulty)) {
+                    console.error('Invalid difficulty');
+                    return { alreadyExists: false, isOrphan: false, valid: false };
+                }
             }
             this.map[block.blockHash] = block;
             let descendants = this.descendantsMap[block.prevBlockHash];
@@ -45,18 +74,12 @@ const createBlockchain = () => {
                 this.topBlockNumber = this.topBlockNumber.plus(bigInt.one);
                 console.log(this.topBlockNumber + (mined ? " > " : " < ") + block.blockString());
                 this.topBlockHash = block.blockHash;
-                return { alreadyExists: false, reorg: false, hasOrphan: false };
+                this._setDifficulty(block);
+                return { alreadyExists: false, isOrphan: false, valid: true };
             } else {
                 let ihash = block.prevBlockHash;
                 let blockDepth = 0;
                 while(true) {
-                    if (ihash !== ROOT_HASH) {
-                        let iblock = this.map[ihash];
-                        if (!iblock) {
-                            console.log("orphan - " + ihash + " does not exist");
-                            return { alreadyExists: false, reorg: false, hasOrphan: true, orphanHash:  ihash };
-                        }
-                    }
                     blockDepth++;
                     let distance = this._findDistance(ihash, this.topBlockHash, 0);
                     if (distance != -1) {
@@ -64,17 +87,53 @@ const createBlockchain = () => {
                             this.topBlockNumber = this.topBlockNumber.minus(bigInt(distance)).plus(bigInt(blockDepth));
                             console.log('...(' + blockDepth + ') ' + this.topBlockNumber + (mined ? " > " : " < ") + block.blockString());
                             this.topBlockHash = block.blockHash;
-                            return { alreadyExists: false, reorg: true, hasOrphan: false };
+                            this._setDifficulty(block);
                         } else {
                             console.log((mined ? " > " : " < ") + block.blockString());
-                            return { alreadyExists: false, reorg: false, hasOrphan: false };
                         }
+                        return { alreadyExists: false, isOrphan: false, valid: true };
                     }
                     if (ihash === ROOT_HASH) {
                         throw new Error('Traversing past root!!!');
                     }
                     ihash = this.map[ihash].prevBlockHash;
                 }
+            }
+        },
+        _calculateDifficulty(hash) {
+            let height = this._calculateHeight(hash);
+            if (height <= this.retargetBlockInterval) {
+                return INITIAL_DIFFICULTY;
+            }
+            let fromHeight = height - ((height - 1) % this.retargetBlockInterval);
+            let toHeight = fromHeight - this.retargetBlockInterval;
+            let fromTs;
+            while (true) {
+                let block = this.map[hash];
+                if (height == fromHeight) {
+                    fromTs = bigInt(block.ts);
+                }
+                if (height == toHeight) {
+                    let interval = fromTs.minus(bigInt(block.ts));
+                    return _difficulty(interval);
+                }
+                hash = block.prevBlockHash;
+                height--;
+            }
+        },
+        _calculateHeight(hash) {
+            let height = 0;
+            while (hash !== ROOT_HASH) {
+                let block = this.map[hash];
+                height++;
+                hash = block.prevBlockHash;
+            }
+            return height;
+        },
+        getAncestor(descendant) {
+            let block = this.map[descendant];
+            if (block) {
+                return this.map[block.prevBlockHash];
             }
         },
         getDescendants(blockHash) {

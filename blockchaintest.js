@@ -1,35 +1,34 @@
 const test = require('mocha');
 const assert = require('assert');
 const bigInt = require("big-integer");
+const BC = require('./blockchain');
 
 test.describe('Blockchain Test', () => {
 
-    var BC;
     var blockchain;
 
     test.beforeEach(() => {
-        BC = require('./blockchain');
         blockchain = BC.createBlockchain();
     });
 
     test.it('Test Init State', function (done) {
-        assert.equal(blockchain.getTopBlockHash(), BC.ROOT_HASH);
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt.zero);
+        assert.equal(blockchain.topBlockHash, BC.ROOT_HASH);
+        assert.deepEqual(blockchain.topBlockNumber, bigInt.zero);
         done();
     })
 
     test.it('Test first block', function (done) {
         blockchain.addBlock(createBlock('a',BC.ROOT_HASH), true);
-        assert.equal(blockchain.getTopBlockHash(), 'a');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt.one);
+        assert.equal(blockchain.topBlockHash, 'a');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt.one);
         done();
     })
 
     test.it('Test orphan', function (done) {
         blockchain.addBlock(createBlock('a',BC.ROOT_HASH), true);
         blockchain.addBlock(createBlock('b', 'x'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'a');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(1));
+        assert.equal(blockchain.topBlockHash, 'a');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(1));
         done();
     })
 
@@ -38,27 +37,27 @@ test.describe('Blockchain Test', () => {
         blockchain.addBlock(createBlock('b', 'a'), true);
         blockchain.addBlock(createBlock('c', 'b'), true);
         blockchain.addBlock(createBlock('p',BC.ROOT_HASH), true);
-        assert.equal(blockchain.getTopBlockHash(), 'c');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(3));
+        assert.equal(blockchain.topBlockHash, 'c');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(3));
         done();
     })
 
     test.it('Test reorg superficial', function (done) {
         blockchain.addBlock(createBlock('p',BC.ROOT_HASH), true);
-        assert.equal(blockchain.getTopBlockHash(), 'p');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(1));
+        assert.equal(blockchain.topBlockHash, 'p');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(1));
         blockchain.addBlock(createBlock('a',BC.ROOT_HASH), true);
-        assert.equal(blockchain.getTopBlockHash(), 'p');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(1));
+        assert.equal(blockchain.topBlockHash, 'p');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(1));
         blockchain.addBlock(createBlock('b', 'a'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'b');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(2));
+        assert.equal(blockchain.topBlockHash, 'b');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(2));
         blockchain.addBlock(createBlock('q','p'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'b');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(2));
+        assert.equal(blockchain.topBlockHash, 'b');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(2));
         blockchain.addBlock(createBlock('r','q'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'r');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(3));
+        assert.equal(blockchain.topBlockHash, 'r');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(3));
         done();
     })
 
@@ -69,14 +68,14 @@ test.describe('Blockchain Test', () => {
         blockchain.addBlock(createBlock('a','x'), true);
         blockchain.addBlock(createBlock('b', 'a'), true);
         blockchain.addBlock(createBlock('c', 'b'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'c');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(4));
+        assert.equal(blockchain.topBlockHash, 'c');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(4));
         blockchain.addBlock(createBlock('r','q'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'c');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(4));
+        assert.equal(blockchain.topBlockHash, 'c');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(4));
         blockchain.addBlock(createBlock('s','r'), true);
-        assert.equal(blockchain.getTopBlockHash(), 's');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(5));
+        assert.equal(blockchain.topBlockHash, 's');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(5));
         done();
     })
 
@@ -86,14 +85,14 @@ test.describe('Blockchain Test', () => {
         blockchain.addBlock(createBlock('a',BC.ROOT_HASH), true);
         blockchain.addBlock(createBlock('b', 'a'), true);
         blockchain.addBlock(createBlock('c', 'b'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'c');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(3));
+        assert.equal(blockchain.topBlockHash, 'c');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(3));
         blockchain.addBlock(createBlock('r','q'), true);
-        assert.equal(blockchain.getTopBlockHash(), 'c');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(3));
+        assert.equal(blockchain.topBlockHash, 'c');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(3));
         blockchain.addBlock(createBlock('s','r'), true);
-        assert.equal(blockchain.getTopBlockHash(), 's');
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(4));
+        assert.equal(blockchain.topBlockHash, 's');
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(4));
         done();
     })
 
@@ -145,8 +144,8 @@ test.describe('Blockchain Test', () => {
     }
 
     let assertTopBlock = (_blockHash, depth) => {
-        assert.equal(blockchain.getTopBlockHash(), _blockHash);
-        assert.deepEqual(blockchain.getTopBlockNumber(), bigInt(depth));
+        assert.equal(blockchain.topBlockHash, _blockHash);
+        assert.deepEqual(blockchain.topBlockNumber, bigInt(depth));
     }
 
     let createBlock = (_blockHash, _prevBlockHash) => {
