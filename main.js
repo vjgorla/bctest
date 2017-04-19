@@ -3,7 +3,7 @@ const bodyParser = require('body-parser');
 const bigInt = require("big-integer");
 const yargs = require("yargs");
 const axios = require("axios");
-const os = require("os");
+const ip = require("ip");
 const BC = require('./blockchain');
 const utils = require('./utils');
 
@@ -30,7 +30,7 @@ if (config.peers.length > 0) {
         }
     }).catch((error) => {});
     config.peers.forEach((peer) => {
-        axios.post(peer + "/addpeer", "peer=" + encodeURIComponent("http://" + os.hostname() + ":" + config.port),
+        axios.post(peer + "/addpeer", "peer=" + encodeURIComponent("http://" + ip.address() + ":" + config.port),
             {headers: {"Content-Type": "application/x-www-form-urlencoded"}})
         .catch((error) => {});
     });
@@ -122,7 +122,7 @@ app.use(function(req, res, next) {
 let relayBlock = (block, delay) => {
     setTimeout(() => {
         config.peers.forEach((peer) => {
-            axios.post(peer + "/block?peer=" + encodeURIComponent("http://" + os.hostname() + ":" + config.port),
+            axios.post(peer + "/block?peer=" + encodeURIComponent("http://" + ip.address() + ":" + config.port),
                 "block=" + encodeURIComponent(block.blockString()),
             {headers: {"Content-Type": "application/x-www-form-urlencoded"}})
             .catch((error) => {});
