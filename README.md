@@ -1,5 +1,5 @@
 ## A test blockchain
-[![Build Status](https://travis-ci.org/vjgorla/bctest.svg?branch=master)](https://travis-ci.org/vjgorla/bctest)
+[![Build Status](https://travis-ci.org/vjgorla/bctest.svg?branch=master)](https://travis-ci.org/vjgorla/bctest) [![Coverage Status](https://coveralls.io/repos/github/vjgorla/bctest/badge.svg?branch=master)](https://coveralls.io/github/vjgorla/bctest?branch=master)
 
 ### How to run
 * Install nodejs from https://nodejs.org/en/download/
