@@ -38,15 +38,15 @@ if (config.peers.length > 0) {
 
 setInterval(() => {
     for(let i = 0; i < 1000; i++) {
-    nonce = nonce.plus(bigInt.one);
-    let block = BC.createBlock(blockchain.topBlockHash, nonce.toString(), new Date().getTime(), config.text);
-    let blockHash = utils.digestStrToHex(block.blockContentsString());
-    if (utils.hexToBigInt(blockHash).lesserOrEquals(blockchain.currentDifficulty)) {
-        block.blockHash = blockHash;
-        blockchain.addBlock(block, true);
-        relayBlock(block, config.delay);
+        nonce = nonce.plus(bigInt.one);
+        let block = BC.createBlock(blockchain.topBlockHash, nonce.toString(), new Date().getTime(), config.text);
+        let blockHash = utils.digestStrToHex(block.blockContentsString());
+        if (utils.hexToBigInt(blockHash).lesserOrEquals(blockchain.currentDifficulty)) {
+            block.blockHash = blockHash;
+            blockchain.addBlock(block, true);
+            relayBlock(block, config.delay);
+        }
     }
-}
 }, 50);
 
 let processBlock = (blockStr, peer, onDone) => {
