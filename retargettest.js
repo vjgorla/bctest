@@ -33,12 +33,12 @@ test.describe('Difficulty retarget test', () => {
         assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY.multiply(bigInt(2)));
         blockchain.addBlock(createBlock('d', 'c', 2000010), true);
         blockchain.addBlock(createBlock('e', 'd', 3000000), true);
-        assert.deepEqual(blockchain._calculateDifficulty('e'), INITIAL_DIFFICULTY);
-        assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY);
+        assert.deepEqual(blockchain._calculateDifficulty('e'), INITIAL_DIFFICULTY.multiply(bigInt(2)));
+        assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY.multiply(bigInt(2)));
         blockchain.addBlock(createBlock('f', 'e', 3000010), true);
         blockchain.addBlock(createBlock('g', 'f', 3000010), true);
-        assert.deepEqual(blockchain._calculateDifficulty('g'), INITIAL_DIFFICULTY.divide(bigInt(100000)));
-        assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY.divide(bigInt(100000)));
+        assert.deepEqual(blockchain._calculateDifficulty('g'), INITIAL_DIFFICULTY.divide(bigInt(50000)));
+        assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY.divide(bigInt(50000)));
         done();
     })
 
@@ -98,7 +98,7 @@ test.describe('Difficulty retarget test', () => {
         result = blockchain.addBlock(block, false);
         assert.equal(result.valid, true);
 
-        assert.deepEqual(blockchain._calculateDifficulty('00002007422630a845f547083b9bad6ffd06bb4653cfc575f0f6bbf7038bf4bc'), INITIAL_DIFFICULTY.divide(bigInt(4)));
+        assert.deepEqual(blockchain._calculateDifficulty('00002007422630a845f547083b9bad6ffd06bb4653cfc575f0f6bbf7038bf4bc'), INITIAL_DIFFICULTY.divide(bigInt(8)));
         assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY);
         assert.equal(blockchain.topBlockHash, 'e');
 
@@ -113,7 +113,7 @@ test.describe('Difficulty retarget test', () => {
         result = blockchain.addBlock(block, false);
         assert.equal(result.valid, true);
 
-        assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY.divide(bigInt(4)));
+        assert.deepEqual(blockchain.currentDifficulty, INITIAL_DIFFICULTY.divide(bigInt(8)));
         assert.equal(blockchain.topBlockHash, '000005cdad940869376620dd4174419cb50ff6b342494ed59a7f45c5648f58b5');
 
         done();
