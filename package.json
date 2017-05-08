@@ -11,6 +11,7 @@
   "dependencies": {
     "axios": "^0.15.3",
     "big-integer": "^1.6.17",
+    "bignumber.js": "^4.0.1",
     "body-parser": "^1.17.1",
     "express": "^4.15.2",
     "ip": "^1.1.5",
