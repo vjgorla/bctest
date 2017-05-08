@@ -1,13 +1,19 @@
 const bigInt = require("big-integer");
+const BigNumber = require('bignumber.js');
 const utils = require('./utils');
 
 const ROOT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
 const RETARGET_BLOCK_INTERVAL = 100
 const INITIAL_DIFFICULTY = bigInt(2).pow(bigInt(256)).divide(bigInt(100000));
 const BASELINE_TS_INTERVAL = bigInt(1000000);
+const DIFFICULTY_PRECISION = bigInt(1000000);
 
-const _difficulty = (interval) => {
-    return bigInt(2).pow(bigInt(256)).multiply(interval.multiply(bigInt(100000)).divide(BASELINE_TS_INTERVAL)).divide(bigInt('10000000000'));
+const _difficulty = (interval, prevDifficulty) => {
+    return interval.multiply(DIFFICULTY_PRECISION).divide(BASELINE_TS_INTERVAL).multiply(prevDifficulty).divide(DIFFICULTY_PRECISION);
+}
+
+const _difficultyToString = (diffculty) => {
+    return bigInt(2).pow(bigInt(256)).divide(diffculty).toString();
 }
 
 const createBlock = (_prevBlockHash, _nonce, _ts, _text) => {
@@ -37,7 +43,9 @@ const createBlockchain = () => {
         _setDifficulty(block) {
             let newDifficulty = this._calculateDifficulty(block.blockHash);
             if (newDifficulty.notEquals(this.currentDifficulty)) {
-                console.log("Difficulty adjusted ... " + this.currentDifficulty.toString() + " > " + newDifficulty.toString());
+                let change = new BigNumber(newDifficulty.toString()).minus(new BigNumber(this.currentDifficulty.toString()))
+                    .times(new BigNumber('100')).div(new BigNumber(this.currentDifficulty.toString()));
+                console.log("Difficulty " + change.neg().toString(10) + "% ... " + _difficultyToString(this.currentDifficulty) + " > " + _difficultyToString(newDifficulty));
             }
             this.currentDifficulty = newDifficulty;
         },
@@ -115,7 +123,7 @@ const createBlockchain = () => {
                 }
                 if (height == toHeight) {
                     let interval = fromTs.minus(bigInt(block.ts));
-                    return _difficulty(interval);
+                    return _difficulty(interval, this._calculateDifficulty(block.blockHash));
                 }
                 hash = block.prevBlockHash;
                 height--;
