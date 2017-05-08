@@ -12,8 +12,8 @@ const _difficulty = (interval, prevDifficulty) => {
     return interval.multiply(DIFFICULTY_PRECISION).divide(BASELINE_TS_INTERVAL).multiply(prevDifficulty).divide(DIFFICULTY_PRECISION);
 }
 
-const _difficultyToString = (diffculty) => {
-    return bigInt(2).pow(bigInt(256)).divide(diffculty).toString();
+const _difficultyToDisplay = (diffculty) => {
+    return bigInt(2).pow(bigInt(256)).divide(diffculty);
 }
 
 const createBlock = (_prevBlockHash, _nonce, _ts, _text) => {
@@ -43,9 +43,11 @@ const createBlockchain = () => {
         _setDifficulty(block) {
             let newDifficulty = this._calculateDifficulty(block.blockHash);
             if (newDifficulty.notEquals(this.currentDifficulty)) {
-                let change = new BigNumber(newDifficulty.toString()).minus(new BigNumber(this.currentDifficulty.toString()))
-                    .times(new BigNumber('100')).div(new BigNumber(this.currentDifficulty.toString()));
-                console.log("Difficulty " + change.neg().toString(10) + "% ... " + _difficultyToString(this.currentDifficulty) + " > " + _difficultyToString(newDifficulty));
+                let oldD = _difficultyToDisplay(this.currentDifficulty);
+                let newD = _difficultyToDisplay(newDifficulty);
+                let change = new BigNumber(newD.toString()).minus(new BigNumber(oldD.toString()))
+                    .times(new BigNumber('100')).div(new BigNumber(oldD.toString()));
+                console.log("Difficulty " + change.toString(10) + "% ... " + oldD.toString() + " > " + newD.toString());
             }
             this.currentDifficulty = newDifficulty;
         },
