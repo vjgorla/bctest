@@ -8,14 +8,6 @@ const INITIAL_DIFFICULTY = bigInt(2).pow(bigInt(256)).divide(bigInt(100000));
 const BASELINE_TS_INTERVAL = bigInt(1000000);
 const DIFFICULTY_PRECISION = bigInt(1000000);
 
-const _difficulty = (interval, prevDifficulty) => {
-    return interval.multiply(DIFFICULTY_PRECISION).divide(BASELINE_TS_INTERVAL).multiply(prevDifficulty).divide(DIFFICULTY_PRECISION);
-}
-
-const _difficultyToDisplay = (diffculty) => {
-    return bigInt(2).pow(bigInt(256)).divide(diffculty);
-}
-
 const createBlock = (_prevBlockHash, _nonce, _ts, _text) => {
     return {
         blockHash: undefined,
@@ -43,8 +35,8 @@ const createBlockchain = () => {
         _setDifficulty(block) {
             let newDifficulty = this._calculateDifficulty(block.blockHash);
             if (newDifficulty.notEquals(this.currentDifficulty)) {
-                let oldD = _difficultyToDisplay(this.currentDifficulty);
-                let newD = _difficultyToDisplay(newDifficulty);
+                let oldD = bigInt(2).pow(bigInt(256)).divide(this.currentDifficulty);
+                let newD = bigInt(2).pow(bigInt(256)).divide(newDifficulty);
                 let change = new BigNumber(newD.toString()).minus(new BigNumber(oldD.toString()))
                     .times(new BigNumber('100')).div(new BigNumber(oldD.toString()));
                 console.log("Difficulty " + change.toString(10) + "% ... " + oldD.toString() + " > " + newD.toString());
@@ -125,11 +117,14 @@ const createBlockchain = () => {
                 }
                 if (height == toHeight) {
                     let interval = fromTs.minus(bigInt(block.ts));
-                    return _difficulty(interval, this._calculateDifficulty(block.blockHash));
+                    return this._difficulty(interval, this._calculateDifficulty(block.blockHash));
                 }
                 hash = block.prevBlockHash;
                 height--;
             }
+        },
+        _difficulty(interval, prevDifficulty) {
+            return interval.multiply(DIFFICULTY_PRECISION).divide(BASELINE_TS_INTERVAL).multiply(prevDifficulty).divide(DIFFICULTY_PRECISION);
         },
         _calculateHeight(hash) {
             let height = 0;
