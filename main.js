@@ -14,7 +14,7 @@ const config = {
     delay: yargs.argv.delay || 3000,
 };
 
-let blockchain = BC.createBlockchain();
+let blockchain = new BC.Blockchain();
 const app = express();
 let nonce = bigInt.zero;
 
@@ -39,7 +39,7 @@ if (config.peers.length > 0) {
 setInterval(() => {
     for(let i = 0; i < 1000; i++) {
         nonce = nonce.plus(bigInt.one);
-        let block = BC.createBlock(blockchain.topBlockHash, nonce.toString(), new Date().getTime(), config.text);
+        let block = new BC.Block(blockchain.topBlockHash, nonce.toString(), new Date().getTime(), config.text);
         let blockHash = utils.digestStrToHex(block.blockContentsString());
         if (utils.hexToBigInt(blockHash).lesserOrEquals(blockchain.currentDifficulty)) {
             block.blockHash = blockHash;
@@ -55,7 +55,7 @@ let processBlock = (blockStr, peer, onDone) => {
         console.error('Invalid number of elements in block');
         return;
     }
-    let block = BC.createBlock(blockElms[1], blockElms[2], blockElms[3], blockElms[4]);
+    let block = new BC.Block(blockElms[1], blockElms[2], blockElms[3], blockElms[4]);
     block.blockHash = blockElms[0];
     let result = blockchain.addBlock(block, false);
     if (result) {

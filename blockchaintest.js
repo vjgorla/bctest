@@ -8,7 +8,7 @@ test.describe('Blockchain Test', () => {
     var blockchain;
 
     test.beforeEach(() => {
-        blockchain = BC.createBlockchain();
+        blockchain = new BC.Blockchain();
     });
 
     test.it('Test Init State', function (done) {
@@ -149,7 +149,7 @@ test.describe('Blockchain Test', () => {
     }
 
     let createBlock = (_blockHash, _prevBlockHash) => {
-        let block = BC.createBlock(_prevBlockHash, 1, 1, 'x');
+        let block = new BC.Block(_prevBlockHash, 1, 1, 'x');
         block.blockHash = _blockHash;
         return block;
     };
