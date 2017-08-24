@@ -3,7 +3,7 @@ const BigNumber = require('bignumber.js');
 const utils = require('./utils');
 
 const ROOT_HASH = '0000000000000000000000000000000000000000000000000000000000000000';
-const RETARGET_BLOCK_INTERVAL = 100
+const RETARGET_BLOCK_INTERVAL = 100;
 const INITIAL_DIFFICULTY = bigInt(2).pow(bigInt(256)).divide(bigInt(100000));
 const BASELINE_TS_INTERVAL = bigInt(1000000);
 const DIFFICULTY_PRECISION = bigInt(1000000);
@@ -14,12 +14,16 @@ function Block(prevBlockHash, nonce, ts, text) {
     this.nonce = nonce;
     this.ts = ts;
     this.text = text;
-    this.blockContentsString = function() {
+}
+
+Block.prototype = {
+    constructor: Block,
+    blockContentsString: function() {
         return this.prevBlockHash + ":" + this.nonce + ":" + this.ts + ":" + this.text;
-    };
-    this.blockString = function() {
+    },
+    blockString: function() {
         return this.blockHash + ":" + this.blockContentsString();
-    };
+    }
 };
 
 function Blockchain() {
@@ -29,7 +33,11 @@ function Blockchain() {
     this.topBlockHash = ROOT_HASH;
     this.map = {};
     this.descendantsMap = {};
-    this._setDifficulty = function(block) {
+}
+
+Blockchain.prototype = {
+    constructor: Blockchain,
+    _setDifficulty: function(block) {
         let newDifficulty = this._calculateDifficulty(block.blockHash);
         if (newDifficulty.notEquals(this.currentDifficulty)) {
             let oldD = bigInt(2).pow(bigInt(256)).divide(this.currentDifficulty);
@@ -39,8 +47,8 @@ function Blockchain() {
             console.log("Difficulty " + change.toString(10) + "% ... " + oldD.toString() + " > " + newD.toString());
         }
         this.currentDifficulty = newDifficulty;
-    };
-    this.addBlock = function(block, mined) {
+    },
+    addBlock: function(block, mined) {
         if (this.map[block.blockHash]) {
             return { alreadyExists: true };
         }
@@ -81,7 +89,7 @@ function Blockchain() {
             while(true) {
                 blockDepth++;
                 let distance = this._findDistance(ihash, this.topBlockHash, 0);
-                if (distance != -1) {
+                if (distance !== -1) {
                     if (blockDepth > distance) {
                         this.topBlockNumber = this.topBlockNumber.minus(bigInt(distance)).plus(bigInt(blockDepth));
                         console.log('...(' + blockDepth + ') ' + this.topBlockNumber + (mined ? " > " : " < ") + block.blockString());
@@ -98,8 +106,8 @@ function Blockchain() {
                 ihash = this.map[ihash].prevBlockHash;
             }
         }
-    };
-    this._calculateDifficulty = function(hash) {
+    },
+    _calculateDifficulty: function(hash) {
         let height = this._calculateHeight(hash);
         if (height <= this.retargetBlockInterval) {
             return INITIAL_DIFFICULTY;
@@ -109,21 +117,21 @@ function Blockchain() {
         let fromTs;
         while (true) {
             let block = this.map[hash];
-            if (height == fromHeight) {
+            if (height === fromHeight) {
                 fromTs = bigInt(block.ts);
             }
-            if (height == toHeight) {
+            if (height === toHeight) {
                 let interval = fromTs.minus(bigInt(block.ts));
                 return this._difficulty(interval, this._calculateDifficulty(block.blockHash));
             }
             hash = block.prevBlockHash;
             height--;
         }
-    };
-    this._difficulty = function(interval, prevDifficulty) {
+    },
+    _difficulty: function(interval, prevDifficulty) {
         return interval.multiply(DIFFICULTY_PRECISION).divide(BASELINE_TS_INTERVAL).multiply(prevDifficulty).divide(DIFFICULTY_PRECISION);
-    };
-    this._calculateHeight = function(hash) {
+    },
+    _calculateHeight: function(hash) {
         let height = 0;
         while (hash !== ROOT_HASH) {
             let block = this.map[hash];
@@ -131,31 +139,31 @@ function Blockchain() {
             hash = block.prevBlockHash;
         }
         return height;
-    };
-    this.getAncestor = function(descendant) {
+    },
+    getAncestor: function(descendant) {
         let block = this.map[descendant];
         if (block) {
             return this.map[block.prevBlockHash];
         }
-    };
-    this.getDescendants = function(blockHash) {
+    },
+    getDescendants: function(blockHash) {
         let result = { blocks: [] };
         this._getDescendants(blockHash, result);
         return result.blocks;
-    };
-    this._getDescendants = function(blockHash, result) {
+    },
+    _getDescendants: function(blockHash, result) {
         let descendants = this.descendantsMap[blockHash];
         if (descendants) {
             for (let i = 0; i < descendants.length; i++) {
                 let distance = this._findDistance(descendants[i].blockHash, this.topBlockHash, 0);
-                if (distance != -1) {
+                if (distance !== -1) {
                     result.blocks.push(descendants[i]);
                     this._getDescendants(descendants[i].blockHash, result);
                 }
             }
         }
-    };
-    this._findDistance = function(fromHash, toHash, currentDepth) {
+    },
+    _findDistance: function(fromHash, toHash, currentDepth) {
         if (fromHash === toHash) {
             return currentDepth;
         }
@@ -169,17 +177,17 @@ function Blockchain() {
                 return currentDepth;
             } else {
                 let distance = this._findDistance(descendants[i].blockHash, toHash, currentDepth);
-                if (distance != -1) {
+                if (distance !== -1) {
                     return distance;
                 }
             }
         }
         return -1;
-    };
+    }
 };
 
 module.exports = {
     ROOT_HASH: ROOT_HASH,
     Block: Block,
     Blockchain: Blockchain
-}
+};
