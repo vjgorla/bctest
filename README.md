@@ -13,5 +13,7 @@ Blocks are essentially empty, and there is no merkel tree or an in-built token. 
 
 To simulate latency in peer-to-peer network, block relay is delayed by 3secs by default. Increasing the delay by setting ```--delay``` (in milliseconds) will increase the probability of chain reorgs.
 
+Also built a java version here https://github.com/vjgorla/bctest-java
+
 ### Todo
 * Nodes reorg to move to a chain with most work (not longest)
