@@ -1,4 +1,4 @@
-## A minimal blockchain implementation to study game theory behind Nakamoto Consensus
+## A prototype blockchain to demo game theory and Nakamoto Consensus
 [![Build Status](https://travis-ci.org/vjgorla/bctest.svg?branch=master)](https://travis-ci.org/vjgorla/bctest) [![Coverage Status](https://coveralls.io/repos/github/vjgorla/bctest/badge.svg?branch=master)](https://coveralls.io/github/vjgorla/bctest?branch=master)
 
 Includes a simple peer-to-peer protocol implementation. Nodes use this to coordinate in building the blockchain. Proof-of-work is based on SHA256. Nodes reorg to move to the longest chain when they see one. There is also a difficulty retarget mechanism as part of the consensus rules. 
